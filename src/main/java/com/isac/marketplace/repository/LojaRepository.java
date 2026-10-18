@@ -13,9 +13,5 @@ public interface LojaRepository extends JpaRepository<Loja, Long> {
 
     Optional<Loja> findByCnpj(String cnpj);
 
-    /**
-     * Usado futuramente pelo serviço de busca do chatbot: retorna apenas
-     * lojas com assinatura ativa para uma determinada categoria/produto.
-     */
-    List<Loja> findByStatusAssinaturaAndCategoriaIgnoreCase(StatusAssinatura status, String categoria);
+    List<Loja> findByStatusAssinatura(StatusAssinatura status);
 }

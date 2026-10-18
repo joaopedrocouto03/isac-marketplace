@@ -3,23 +3,25 @@ package com.isac.marketplace.service;
 import com.isac.marketplace.dto.LojaCadastroDTO;
 import com.isac.marketplace.exception.CampoObrigatorioException;
 import com.isac.marketplace.exception.CnpjInvalidoException;
+import com.isac.marketplace.exception.EmailInvalidoException;
 import com.isac.marketplace.exception.LojaJaCadastradaException;
 import com.isac.marketplace.exception.TelefoneInvalidoException;
 import com.isac.marketplace.model.Loja;
 import com.isac.marketplace.model.StatusAssinatura;
 import com.isac.marketplace.repository.LojaRepository;
+import com.isac.marketplace.util.CnpjValidator;
 import org.springframework.stereotype.Service;
 
+import java.util.regex.Pattern;
+
 /**
- * Serviço responsável pelo cadastro e pelas regras de negócio das lojas
- * parceiras do marketplace comunitário do ISAC.
- *
- * Esta é a classe escolhida pelo grupo para ser implementada por completo
- * nesta entrega, servindo de referência para a estruturação dos demais
- * testes do projeto.
+ * Cadastro de lojas parceiras. A loja nasce com assinatura PENDENTE e
+ * so passa a ser ATIVA depois do pagamento (ver AssinaturaService).
  */
 @Service
 public class LojaService {
+
+    private static final Pattern EMAIL = Pattern.compile("^[\\w.+-]+@[\\w-]+(\\.[\\w-]+)+$");
 
     private final LojaRepository lojaRepository;
 
@@ -27,30 +29,23 @@ public class LojaService {
         this.lojaRepository = lojaRepository;
     }
 
-    /**
-     * Cadastra uma nova loja no marketplace.
-     * A loja é criada com status de assinatura PENDENTE, até que o
-     * pagamento seja confirmado (fluxo a ser implementado futuramente).
-     *
-     * @param dto dados informados no formulário de cadastro
-     * @return a loja persistida, com id gerado
-     * @throws CampoObrigatorioException se algum campo obrigatório não for informado
-     * @throws CnpjInvalidoException     se o CNPJ não tiver um formato válido
-     * @throws TelefoneInvalidoException se o telefone/WhatsApp não tiver um formato válido
-     * @throws LojaJaCadastradaException se já existir loja cadastrada com o mesmo CNPJ
-     */
     public Loja cadastrarLoja(LojaCadastroDTO dto) {
         validarCamposObrigatorios(dto);
         validarCnpj(dto.getCnpj());
+        validarEmail(dto.getEmail());
         validarTelefoneWhatsapp(dto.getTelefoneWhatsapp());
-        verificarDuplicidade(dto.getCnpj());
+
+        String cnpj = somenteNumeros(dto.getCnpj());
+        if (lojaRepository.existsByCnpj(cnpj)) {
+            throw new LojaJaCadastradaException("Já existe uma loja cadastrada com este CNPJ.");
+        }
 
         Loja loja = new Loja(
-                dto.getNomeFantasia(),
-                somenteNumeros(dto.getCnpj()),
-                dto.getCategoria(),
+                dto.getNomeFantasia().trim(),
+                cnpj,
+                dto.getCategoria().trim(),
                 somenteNumeros(dto.getTelefoneWhatsapp()),
-                dto.getEmail(),
+                dto.getEmail().trim(),
                 dto.getEndereco()
         );
         loja.setStatusAssinatura(StatusAssinatura.PENDENTE);
@@ -77,26 +72,25 @@ public class LojaService {
     }
 
     private void validarCnpj(String cnpj) {
-        String cnpjLimpo = somenteNumeros(cnpj);
-        if (cnpjLimpo.length() != 14) {
+        if (somenteNumeros(cnpj).length() != 14) {
             throw new CnpjInvalidoException("O CNPJ deve conter 14 dígitos.");
         }
-        // TODO: implementar validação completa dos dígitos verificadores do CNPJ.
-        // Por ora, valida-se apenas o formato/tamanho.
+        if (!CnpjValidator.isValido(cnpj)) {
+            throw new CnpjInvalidoException("CNPJ inválido (dígitos verificadores incorretos).");
+        }
+    }
+
+    private void validarEmail(String email) {
+        if (!EMAIL.matcher(email.trim()).matches()) {
+            throw new EmailInvalidoException("O e-mail informado não é válido.");
+        }
     }
 
     private void validarTelefoneWhatsapp(String telefone) {
-        String telefoneLimpo = somenteNumeros(telefone);
-        if (telefoneLimpo.length() < 10 || telefoneLimpo.length() > 11) {
+        int tamanho = somenteNumeros(telefone).length();
+        if (tamanho < 10 || tamanho > 11) {
             throw new TelefoneInvalidoException(
                     "Telefone/WhatsApp inválido. Informe o DDD + número (10 ou 11 dígitos).");
-        }
-    }
-
-    private void verificarDuplicidade(String cnpj) {
-        String cnpjLimpo = somenteNumeros(cnpj);
-        if (lojaRepository.existsByCnpj(cnpjLimpo)) {
-            throw new LojaJaCadastradaException("Já existe uma loja cadastrada com este CNPJ.");
         }
     }
 

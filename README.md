@@ -1,88 +1,56 @@
 # ISAC Marketplace
 
-Marketplace comunitário do **ISAC — Instituto Social Ambiental do Cabo de
-Santo Agostinho**, criado para substituir o grupo de WhatsApp usado pela
-comunidade de Enseada dos Corais para divulgar produtos e serviços.
+Marketplace comunitário do ISAC (Instituto Social Ambiental do Cabo de Santo Agostinho),
+para substituir o grupo de WhatsApp usado pela comunidade de Enseada dos Corais.
 
-**Ideia geral do projeto:** lojas locais se cadastram e pagam uma
-assinatura para anunciar no marketplace. Quando um cliente manda uma
-mensagem no chatbot do WhatsApp perguntando por um produto, o bot responde
-indicando quais lojas cadastradas (com assinatura ativa) oferecem aquele
-produto.
+Ideia: lojas locais se cadastram e pagam uma assinatura para anunciar. Quando um cliente
+pergunta por um produto no chatbot do WhatsApp, o bot responde com as lojas (de assinatura
+ativa) que têm o produto.
 
-## Escopo desta entrega
+Este repositório tem a parte de regras de negócio em Java (Spring Boot) com testes unitários
+(JUnit 5 + Mockito). Ainda não há controllers, telas nem integração com o WhatsApp.
 
-Conforme orientado pelo professor, esta entrega **não exige o projeto
-completo nem os testes 100% funcionais**. O objetivo foi:
+## Classes e testes
 
-1. Escolher **uma classe do projeto** e implementá-la por completo.
-2. Criar o **esqueleto dos testes** relacionados a ela, mostrando os
-   cenários que o grupo pretende validar.
+| Classe | O que faz | Testes |
+|---|---|---|
+| `CnpjValidator` | valida CNPJ (tamanho e dígitos verificadores) | `CnpjValidatorTest` |
+| `LojaService` | cadastro de lojas (campos obrigatórios, CNPJ, e-mail, telefone, duplicidade) | `LojaServiceTest` |
+| `ProdutoService` | cadastro de produtos (só loja com assinatura ativa), disponibilidade, listagem | `ProdutoServiceTest` |
+| `BuscaProdutoService` | busca do chatbot: lojas ativas que têm o produto e texto da resposta | `BuscaProdutoServiceTest` |
+| `AssinaturaService` | ativar, cancelar e vencer a assinatura das lojas | `AssinaturaServiceTest` |
 
-A classe escolhida foi **`LojaService`**, responsável pelo **cadastro de
-lojas parceiras** — a funcionalidade equivalente a um "cadastro/registro
-de usuário" no contexto deste projeto, e uma das bases para todo o resto
-do sistema (sem loja cadastrada, não há o que o bot responder).
+Os repositórios (`LojaRepository`, `ProdutoRepository`) são mockados nos testes, então eles
+rodam sem banco de dados.
 
-## Estrutura do projeto
+## Estrutura
 
 ```
 src/main/java/com/isac/marketplace/
-├── MarketplaceApplication.java     # classe principal Spring Boot
-├── model/
-│   ├── Loja.java                   # entidade JPA da loja parceira
-│   └── StatusAssinatura.java       # enum: PENDENTE, ATIVA, INATIVA
-├── dto/
-│   └── LojaCadastroDTO.java        # dados recebidos no cadastro
-├── repository/
-│   └── LojaRepository.java         # acesso a dados (Spring Data JPA)
-├── service/
-│   └── LojaService.java            # ★ classe implementada nesta entrega
-└── exception/                      # exceções de validação de negócio
-    ├── ValidacaoException.java
-    ├── CampoObrigatorioException.java
-    ├── CnpjInvalidoException.java
-    ├── TelefoneInvalidoException.java
-    └── LojaJaCadastradaException.java
+  model/        Loja, Produto, StatusAssinatura
+  dto/          LojaCadastroDTO, ProdutoCadastroDTO
+  repository/   LojaRepository, ProdutoRepository
+  service/      LojaService, ProdutoService, BuscaProdutoService, AssinaturaService
+  util/         CnpjValidator
+  config/       ClockConfig
+  exception/    exceções de validação
 
-src/test/java/com/isac/marketplace/service/
-└── LojaServiceTest.java            # ★ testes de LojaService
+src/test/java/com/isac/marketplace/
+  service/      LojaServiceTest, ProdutoServiceTest, BuscaProdutoServiceTest, AssinaturaServiceTest
+  util/         CnpjValidatorTest
 ```
 
-## Cenários de teste cobertos (`LojaServiceTest`)
-
-Já implementados e passando:
-
-1. ✅ Cadastro de loja com dados válidos (caminho feliz)
-2. ✅ Campo obrigatório não preenchido (nome fantasia vazio)
-3. ✅ CNPJ com formato inválido
-4. ✅ Telefone/WhatsApp com formato inválido
-5. ✅ CNPJ já cadastrado (loja duplicada)
-
-Planejados para as próximas entregas (marcados com `@Disabled` e `TODO`
-no código, mostrando o esqueleto do que já foi pensado):
-
-6. ⏳ Ativação da assinatura após confirmação de pagamento
-7. ⏳ Filtro de lojas com assinatura inativa na busca do chatbot
-8. ⏳ Validação completa dos dígitos verificadores do CNPJ
-
 ## Como rodar os testes
-
-Com o Maven instalado:
 
 ```bash
 mvn test
 ```
 
-Os testes usam **JUnit 5** e **Mockito** (ambos incluídos via
-`spring-boot-starter-test`), mockando `LojaRepository` para testar a
-regra de negócio de `LojaService` de forma isolada, sem depender de banco
-de dados.
+Resultado esperado: 52 testes, 0 falhas, 0 ignorados.
 
 ## Próximos passos
 
-- Implementar `LojaController` (API REST) para expor o cadastro.
-- Implementar o serviço de busca usado pelo chatbot do WhatsApp.
-- Integrar com gateway de pagamento para ativação automática da
-  assinatura.
-- Implementar a entidade/serviço de **Produto**, associada à loja.
+- Controllers (API REST) para cadastro de lojas e produtos
+- Integração do chatbot com `BuscaProdutoService`
+- Integração com pagamento para chamar `AssinaturaService.ativarAssinatura`
+- Agendar `inativarAssinaturasVencidas` para rodar todo dia

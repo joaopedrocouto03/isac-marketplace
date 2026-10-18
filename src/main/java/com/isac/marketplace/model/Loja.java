@@ -9,15 +9,13 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
- * Representa uma loja parceira cadastrada no marketplace comunitário do ISAC.
- *
- * Uma loja paga uma assinatura para ter seus produtos/serviços divulgados
- * e para ser indicada pelo chatbot do WhatsApp quando um cliente pergunta
- * por um produto que ela oferece.
+ * Loja parceira do marketplace. Paga uma assinatura para aparecer
+ * nas respostas do chatbot.
  */
 @Entity
 @Table(name = "lojas")
@@ -49,11 +47,14 @@ public class Loja {
     @Column(name = "status_assinatura", nullable = false)
     private StatusAssinatura statusAssinatura;
 
+    @Column(name = "data_vencimento_assinatura")
+    private LocalDate dataVencimentoAssinatura;
+
     @Column(name = "data_cadastro", nullable = false)
     private LocalDateTime dataCadastro;
 
     public Loja() {
-        // Construtor padrão exigido pelo JPA
+        // exigido pelo JPA
     }
 
     public Loja(String nomeFantasia, String cnpj, String categoria,
@@ -132,6 +133,14 @@ public class Loja {
         this.statusAssinatura = statusAssinatura;
     }
 
+    public LocalDate getDataVencimentoAssinatura() {
+        return dataVencimentoAssinatura;
+    }
+
+    public void setDataVencimentoAssinatura(LocalDate dataVencimentoAssinatura) {
+        this.dataVencimentoAssinatura = dataVencimentoAssinatura;
+    }
+
     public LocalDateTime getDataCadastro() {
         return dataCadastro;
     }
@@ -140,10 +149,7 @@ public class Loja {
         this.dataCadastro = dataCadastro;
     }
 
-    /**
-     * Uma loja só é elegível para aparecer nas respostas do chatbot
-     * quando a assinatura está ativa.
-     */
+    // so lojas com assinatura ativa aparecem para o chatbot
     public boolean isElegivelParaBuscaDoBot() {
         return this.statusAssinatura == StatusAssinatura.ATIVA;
     }
@@ -163,12 +169,7 @@ public class Loja {
 
     @Override
     public String toString() {
-        return "Loja{" +
-                "id=" + id +
-                ", nomeFantasia='" + nomeFantasia + '\'' +
-                ", cnpj='" + cnpj + '\'' +
-                ", categoria='" + categoria + '\'' +
-                ", statusAssinatura=" + statusAssinatura +
-                '}';
+        return "Loja{id=" + id + ", nomeFantasia='" + nomeFantasia + "', cnpj='" + cnpj
+                + "', statusAssinatura=" + statusAssinatura + "}";
     }
 }
